@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+    </head>
+    <body>
+        <h1> websocket 통신 이용한 1인 채팅</h1>
+        <div id='chat_window' style='border:1px solid black; height: 300px; overflow-y:scroll;'></div>
+        <!-- 메시지가 출력될 DIV -->
+        <form id="preChatForm">
+            <label for="userId">Enter your ID: </label>
+            <input type="text" id="userId" autocomplete="off"/>
+            <button onclick="preChatSubmit(event)">Join</button>
+        </form>
+        <!-- 사용자 닉네임과 "Join" 버튼이 포함된 폼 -->
+        <form id="chatForm" style="display:none;">
+            <label for="messageText">Enter message:</label>
+            <input type="text" id="messageText" autocomplete="off"/>
+            <button>Send</button>
+        </form>
+        <!-- 채팅 내용과 전송 폼 -->
+        <script>
+            function preChatSubmit(event) {
+                var userId = document.getElementById("userId").value;
+                
+                if (userId) {
+                    document.getElementById("preChatForm").style.display = "none";
+                    document.getElementById("chatForm").style.display = "block";
+                    document.getElementById("messageText").focus();
+                    initWebSocket(userId);  // WebSocket 초기화 및 메시지 전송
+                }
+                
+                event.preventDefault();
+            }
+
+            function initWebSocket(userId) {
+                var ws = new WebSocket("ws://localhost:8000/chatting");  // 웹소켓 엔드포인트 URL
+                var messages = document.getElementById('chat_window');
+                ws.onmessage = function(event) {
+                    var data = JSON.parse(event.data);   // WebSocket을 통해 전달받은 데이터를 JSON으로 파싱
+                    var messageText = data.message;  // 메시지 본문
+                    var idText = data.id;  // 사용자 ID
+                    messages.innerHTML += '<p>' + idText + ': ' + messageText + '</p>';  // 채팅 메시지 HTML 추가
+                    messages.scrollTop = messages.scrollHeight; // 자동 스크롤
+                };
+                
+                document.getElementById("chatForm").addEventListener("submit", function (event) {
+                    var input = document.getElementById("messageText"); // 메시지 입력 창
+                    var message = {id: userId, message: input.value};  // WebSocket으로 전달할 JSON 데이터 생성
+                    ws.send(JSON.stringify(message));  // WebSocket 통신으로 JSON 데이터 전송 (문자열로 변환)
+                    input.value = ''; // 메시지 입력 창 비우기
+                    input.focus(); // 커서 포커스
+                    event.preventDefault(); // 기본 이벤트 방지
+                });
+            }
+        </script>
+    </body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Chat</title>
+        <style>
+            body {
+                margin: 0;
+                padding: 0;
+                font-family: Arial;
+            }
+            .main-container {
+                display: flex;
+                flex-direction: column;
+                height: 100vh;
+            }
+            .title {
+                background-color: #e6e6e6;
+                color: #333;
+                padding: 20px;
+                margin-bottom: 10px;
+                box-shadow: 0 4px 6px gray;
+            }
+            .chat-container {
+                flex: 1;
+                margin: 20px;
+            }
+            .chat-window {
+                border: 2px solid #333;
+                padding: 10px;
+                height: 300px;
+                overflow-y:scroll;
+            }
+            .chat-window p {
+                margin: 5px;
+            }
+            .chat-form {
+                margin-top: 10px;
+                display: flex;
+            }
+            .chat-form input[type="text"] {
+                flex: 1;
+                padding: 5px;
+                margin-right: 10px;
+            }
+            .chat-form button {
+                padding: 5px;
+                background-color: #333;
+                color: #fff;
+                border: none;
+                cursor: pointer;
+            }
+            .hidden {
+                display: none;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="main-container">
+            <div class="title">
+                <h1>websocket 통신 이용한 1인 채팅</h1>
+            </div>
+            <div class="chat-container">
+                <div class="chat-window" id='chat_window'></div>
+                <form id="preChatForm">
+                    <label for="userId">ID 먼저 써줘요</label>
+                    <input type="text" id="userId" autocomplete="off"/>
+                    <button onclick="preChatSubmit(event)">입장</button>
+                </form>
+                <form id="chatForm" class="hidden">
+                    <input type="text" id="messageText" autocomplete="off"/>
+                    <button>Send</button>
+                </form>
+            </div>
+        </div>
+        <script>
+            function preChatSubmit(event) {
+                var userId = document.getElementById("userId").value;
+                
+                if (userId) {
+                    document.getElementById("preChatForm").classList.add("hidden");
+                    document.getElementById("chatForm").classList.remove("hidden");
+                    document.getElementById("messageText").focus();
+                    initWebSocket(userId);  // WebSocket 초기화 및 메시지 전송
+                }
+                
+                event.preventDefault();
+            }
+
+            function initWebSocket(userId) {
+                var ws = new WebSocket("ws://localhost:8000/chatting");  // 웹소켓 엔드포인트 URL
+                var messages = document.getElementById('chat_window');
+                ws.onmessage = function(event) {
+                    var data = JSON.parse(event.data);   // WebSocket을 통해 전달받은 데이터를 JSON으로 파싱
+                    var messageText = data.message;  // 메시지 본문
+                    var idText = data.id;  // 사용자 ID
+                    messages.innerHTML += '<p><strong>' + idText + ': </strong>' + messageText + '</p>';  // 채팅 메시지 HTML 추가
+                    messages.scrollTop = messages.scrollHeight; // 자동 스크롤
+                };
+                
+                document.getElementById("chatForm").addEventListener("submit", function (event) {
+                    var input = document.getElementById("messageText"); // 메시지 입력 창
+                    var message = {id: userId, message: input.value};  // WebSocket으로 전달할 JSON 데이터 생성
+                    ws.send(JSON.stringify(message));  // WebSocket 통신으로 JSON 데이터 전송 (문자열로 변환)
+                    input.value = ''; // 메시지 입력 창 비우기
+                    input.focus(); // 커서 포커스
+                    event.preventDefault(); // 기본 이벤트 방지
+                });
+            }
+        </script>
+    </body>
+</html>
